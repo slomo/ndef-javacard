@@ -1,0 +1,58 @@
+apply plugin: 'java'
+apply plugin: JavacardPlugin
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile fileTree(dir: '/home/yves/opt/java-card-sdk/lib/api.jar')
+    testCompile 'junit:junit:4.11'
+}
+
+cap {
+    aid = '0xd2:0x76:0x00:0x00:0x85:0x01'
+    app = 'de.spline.uves.ndef.Ndef'
+    version = '1.0'
+}
+
+
+
+/*task recources << {
+    capfilesDir.mkdirs()
+}
+
+task capfiles(dependsOn: [recources, compileJava]) {
+        
+    ext.classname = "de.spline.uves.ndef.Ndef"
+    ext.srcFile = new File(compileJava.destinationDir, classname.replace('.', '/') + '.class')
+    ext.dstFile = new File(capfilesDir, 'Ndef.cap')
+
+    inputs.file srcFile
+    outputs.file dstFile
+
+    description = 'Build cap file projects.'
+    group = 'build'
+
+    doLast {
+        def version = "1.0"
+        def elfAid = "0xd2:0x76:0x00:0x00:0x85:0x01"
+                
+        def packagePath = "de.spline.uves.ndef"
+        def translate = """${javacardHome}/bin/converter
+                   -out CAP
+                   -d ${capfilesDir} 
+                   -classdir ${compileJava.destinationDir}
+                   -applet ${elfAid}:0x01 ${packagePath}.Ndef
+                   -exportpath ${javacardHome}/api_export_files
+                   -nobanner
+                   ${packagePath}
+                   ${elfAid}
+                   ${version}""".replace('\n', ' ')
+        def proc = translate.execute() 
+        proc.waitFor()
+        assert(proc.exitValue() == 0)
+    }
+    }*/
+
+
