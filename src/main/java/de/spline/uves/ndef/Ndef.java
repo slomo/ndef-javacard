@@ -19,9 +19,11 @@ public class Ndef extends Applet {
         static final byte SELECTED = 1;
         static final byte EF_SELECTED = 2;
 
-        
         // constants for instructions
         static final byte INS_READ_BINARY = (byte)0xB0;
+
+        // constants for elementary files
+        static final short CAPABILITY_CONTAINER_EF = (short)0xE103;
 
         // constant container
         static final byte[] capabilityContainer = {
@@ -37,7 +39,7 @@ public class Ndef extends Applet {
                 register();
         }
 
-        
+
         /**
          * Installs this applet.
          *
@@ -49,55 +51,61 @@ public class Ndef extends Applet {
                 new Ndef();
         }
 
+        protected short decodeLcLength(byte[] buffer){
+                return buffer[ISO7816.OFFSET_LC];
+                // TODO: decode propperly three bytes values
+        }
+
         // TODO: add javadoc
         protected void processSelect(byte[] buffer) {
 
                 // container capability select
                 if ( state == SELECTED &&
-                     buffer[ISO7816.OFFSET_P1] == 0x00 && /* select by file identfier */
-                     buffer[ISO7816.OFFSET_P2] == 0x0C && /* first and only occourence */
-                     buffer[ISO7816.OFFSET_CDATA] == 0x02 /* Lc = 2 */ ){
+                     buffer[ISO7816.OFFSET_P1] == (byte)0x00 && /* select by file identfier */
+                     buffer[ISO7816.OFFSET_P2] == (byte)0x0C && /* first and only occourence */
+                     decodeLcLength(buffer) == (short)0x02      /* Lc = 2 */ ){
 
-                        state = EF_SELECTED;
-                        ef = (short)(buffer[ISO7816.OFFSET_CDATA + 1] << 8 + buffer[ISO7816.OFFSET_CDATA + 2]);
-                        
+                        ef = (short)((buffer[ISO7816.OFFSET_CDATA] << 8) + buffer[ISO7816.OFFSET_CDATA + 1]);
+
                         // filter for vlalid file identifiers
                         switch (ef) {
-                        case (short)0xE103:
+                        case CAPABILITY_CONTAINER_EF:
+                                state = EF_SELECTED;
                                 break;
                         default:
                                 ISOException.throwIt(ISO7816.SW_FILE_NOT_FOUND);
+                                break;
                         }
 
 
                 } else { // initial select
-                        // TODO: check AID selected was set corretly                        
+                        // TODO: check AID selected was set corretly
                         state = SELECTED;
                 }
         }
 
-        protected short returnCapabilityContainer(byte[] buffer, short offset, short length) {
+        protected short sendCapabilityContainer(byte[] buffer, short offset, short length) {
                 return Util.arrayCopyNonAtomic(capabilityContainer, offset, buffer, (short)0, length);
         }
 
         // TODO: add javadoc
         protected short processReadBinary(byte[] buffer) {
 
-                if (state == EF_SELECTED && ef == (short)0xE103) {
+                if (state == EF_SELECTED && ef == CAPABILITY_CONTAINER_EF) {
                         short offset = (short)(buffer[ISO7816.OFFSET_P1] << 8 + buffer[ISO7816.OFFSET_P2]);
                         byte offset_byte3;
                         short le = 0;
 
                         if (0x0000 <= offset && offset <= 0x7FFF) { // short offset
                                 le = buffer[ISO7816.OFFSET_CDATA]; // Todo: proper le decoding
-                                return returnCapabilityContainer(buffer, offset, le);
+                                return sendCapabilityContainer(buffer, offset, le);
 
                         } else if ( offset == 0x0000 && // long offsets
-                                    buffer[ISO7816.OFFSET_CDATA] == 5 && 
+                                    buffer[ISO7816.OFFSET_CDATA] == 5 &&
                                     buffer[ISO7816.OFFSET_CDATA + 1] == 0x54 &&
                                     buffer[ISO7816.OFFSET_CDATA + 2] == 0x03){
 
-                                
+
                                 offset = (short)(
                                         buffer[ISO7816.OFFSET_CDATA + 1] << 8 |
                                         buffer[ISO7816.OFFSET_CDATA + 2]);
@@ -126,10 +134,13 @@ public class Ndef extends Applet {
          * @exception ISOException with the response bytes per ISO 7816-4
          */
         public void process(APDU apdu) {
+
+                short recivedNow = apdu.setIncomingAndReceive();
                 byte buffer[] = apdu.getBuffer();
                 short responseLength = 0;
 
-                // check class
+
+                // validate class
                 if (buffer[ISO7816.OFFSET_CLA] != ISO7816.CLA_ISO7816) {
                         ISOException.throwIt(ISO7816.SW_CLA_NOT_SUPPORTED);
                 }
@@ -139,17 +150,25 @@ public class Ndef extends Applet {
 
                 case ISO7816.INS_SELECT:
                         processSelect(buffer);
+
+                        apdu.setOutgoing();
+                        apdu.setOutgoingLength(responseLength);
                         break;
 
                 case INS_READ_BINARY:
                         responseLength = processReadBinary(buffer);
+
+                        apdu.setOutgoing();
+                        apdu.setOutgoingLength(responseLength);
                         break;
 
-                case 0x00:
+                case (byte)0x90:
+                        apdu.setOutgoing();
+                        apdu.setOutgoingLength((short)3);
                         buffer[0] = state;
                         buffer[1] = (byte)(ef >> 8);
                         buffer[2] = (byte)(ef);
-                        responseLength = (short)3;
+                        apdu.sendBytes((short)0, (short)3);
                         break;
 
                 default: // unkown instruction
@@ -157,8 +176,5 @@ public class Ndef extends Applet {
                         ISOException.throwIt(ISO7816.SW_INS_NOT_SUPPORTED);
                 }
 
-                apdu.setOutgoing();
-                apdu.setOutgoingLength( (short)2);
-                apdu.sendBytes( (short)0, responseLength);
         }
 }
