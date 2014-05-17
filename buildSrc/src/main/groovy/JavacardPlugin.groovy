@@ -12,12 +12,11 @@ class JavacardPlugin implements Plugin<Project> {
     
         project.task('capfiles') {
 
+            dependsOn(project.compileJava)
+
             ext.capBuildDir = new File(project.buildDir, 'capfiles')
 
             doLast {
-
-
-            
 
                 def destinationDir = 'build/classes/main'
 
