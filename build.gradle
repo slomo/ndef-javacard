@@ -16,11 +16,13 @@ buildscript {
 
 repositories {
     mavenCentral()
+    maven { url { 'https://oss.sonatype.org/content/repositories/snapshots/' } }
 }
 
 dependencies {
     compile fileTree(dir: '/home/yves/opt/java-card-sdk/lib/api.jar')
     testCompile 'junit:junit:4.11'
+    testCompile 'com.licel:jcardsim:2.2.1-SNAPSHOT'
 }
 
 cap {
