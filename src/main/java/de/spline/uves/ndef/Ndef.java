@@ -14,32 +14,18 @@ import javacard.framework.*;
 
 public class Ndef extends Applet {
 
-        // constant for state codings
-        static final byte IDLE = 0;
-        static final byte SELECTED = 1;
-        static final byte EF_SELECTED = 2;
-
         // constants for instructions
         static final byte INS_READ_BINARY = (byte)0xB0;
 
-        // constants for elementary files
-        static final short CAPABILITY_CONTAINER_EF = (short)0xE103;
-
-        // constant container
-        static final byte[] capabilityContainer = {
-                0x00
-        };
 
         // mutable state of applet
-        private byte state;
-        private short ef;
+        private State state;
 
-        protected Request handler[] = {
+        protected Request handlers[] = {
                 new SelectRequest()
         };
         
         protected Ndef() {
-                state = IDLE;
                 register();
         }
 
@@ -54,45 +40,11 @@ public class Ndef extends Applet {
                 new Ndef();
         }
 
-        protected short decodeLcLength(byte[] buffer){
-                return buffer[ISO7816.OFFSET_LC];
-                // TODO: decode propperly three bytes values
-        }
+
+
 
         // TODO: add javadoc
-        protected void processSelect(byte[] buffer) {
-
-                // container capability select
-                if ( state == SELECTED &&
-                     buffer[ISO7816.OFFSET_P1] == (byte)0x00 && /* select by file identfier */
-                     buffer[ISO7816.OFFSET_P2] == (byte)0x0C && /* first and only occourence */
-                     decodeLcLength(buffer) == (short)0x02      /* Lc = 2 */ ){
-
-                        ef = (short)((buffer[ISO7816.OFFSET_CDATA] << 8) + buffer[ISO7816.OFFSET_CDATA + 1]);
-
-                        // filter for vlalid file identifiers
-                        switch (ef) {
-                        case CAPABILITY_CONTAINER_EF:
-                                state = EF_SELECTED;
-                                break;
-                        default:
-                                ISOException.throwIt(ISO7816.SW_FILE_NOT_FOUND);
-                                break;
-                        }
-
-
-                } else { // initial select
-                        // TODO: check AID selected was set corretly
-                        state = SELECTED;
-                }
-        }
-
-        protected short sendCapabilityContainer(byte[] buffer, short offset, short length) {
-                return Util.arrayCopyNonAtomic(capabilityContainer, offset, buffer, (short)0, length);
-        }
-
-        // TODO: add javadoc
-        protected short processReadBinary(byte[] buffer) {
+/*        protected short processReadBinary(byte[] buffer) {
 
                 if (state == EF_SELECTED && ef == CAPABILITY_CONTAINER_EF) {
                         short offset = (short)(buffer[ISO7816.OFFSET_P1] << 8 + buffer[ISO7816.OFFSET_P2]);
@@ -126,7 +78,7 @@ public class Ndef extends Applet {
                         ISOException.throwIt(ISO7816.SW_FILE_INVALID);
                 }
                 return 0;
-        }
+                }*/
 
 
         /**
@@ -142,9 +94,24 @@ public class Ndef extends Applet {
                 byte buffer[] = apdu.getBuffer();
                 short responseLength = 0;
 
+                Request handler = null;
 
+                for(byte i = 0; i < handlers.length; i ++) {
+                        if (handlers[i].isApplicable(apdu, state)) {
+                                handler = handlers[i];
+                        }
+                }
+
+                if (handler == null) {
+                        state.application = State.IDLE;
+                        ISOException.throwIt(ISO7816.SW_INS_NOT_SUPPORTED);
+                                
+                } else {
+                        state = handler.process(apdu, state);
+                }
+        }
                 // validate class
-                if (buffer[ISO7816.OFFSET_CLA] != ISO7816.CLA_ISO7816) {
+/*                if (buffer[ISO7816.OFFSET_CLA] != ISO7816.CLA_ISO7816) {
                         ISOException.throwIt(ISO7816.SW_CLA_NOT_SUPPORTED);
                 }
 
@@ -157,12 +124,12 @@ public class Ndef extends Applet {
                         // dispatch by instruction
                         switch (buffer[ISO7816.OFFSET_INS]) {
 
-                        /*case ISO7816.INS_SELECT:
+                        case ISO7816.INS_SELECT:
                         processSelect(buffer);
 
                         apdu.setOutgoing();
                         apdu.setOutgoingLength(responseLength);
-                        break;*/
+                        break;
 
                         case INS_READ_BINARY:
                                 responseLength = processReadBinary(buffer);
@@ -186,5 +153,5 @@ public class Ndef extends Applet {
                         }
                 }
 
-        }
+        }*/
 }

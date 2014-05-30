@@ -1,13 +1,13 @@
-package de.spline.uves.ndef.request;
+package de.spline.uves.ndef;
 
 import javacard.framework.*;
 
 public abstract class Request {
 
-        final byte classbyte = ISO7816.CLA_ISO7816;
-        byte insbyte;
+        static final byte classbyte = ISO7816.CLA_ISO7816;
+        static byte insbyte;
 
-        public boolean isApplicable(APDU apdu){
+        public boolean isApplicable(APDU apdu, State state){
                 byte buffer[] = apdu.getBuffer();
                 
                 if (buffer[ISO7816.OFFSET_CLA] != classbyte) {
@@ -19,5 +19,15 @@ public abstract class Request {
                 }
 
                 return true;
-        }             
+        }
+
+        public abstract State process(APDU apdu, State state);
+
+
+        // -- usefull helpers ---------------------------
+
+        protected short decodeLcLength(byte[] buffer){
+                return buffer[ISO7816.OFFSET_LC];
+                // TODO: decode propperly three bytes values
+        }
 }
