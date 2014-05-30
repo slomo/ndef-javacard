@@ -1,5 +1,18 @@
 apply plugin: 'java'
+apply plugin: 'format'
 apply plugin: JavacardPlugin
+
+// include bintray for format-plugin
+buildscript {
+    repositories {
+        mavenCentral()
+        maven { url { 'http://dl.bintray.com/youribonnaffe/maven' } }
+    }
+
+    dependencies {
+        classpath 'org.gradle.api.plugins:gradle-format-plugin:1.1'
+    }
+}
 
 repositories {
     mavenCentral()
