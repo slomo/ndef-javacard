@@ -34,11 +34,14 @@ public class Ndef extends Applet {
         private byte state;
         private short ef;
 
+        protected Request handler[] = {
+                new SelectRequest()
+        };
+        
         protected Ndef() {
                 state = IDLE;
                 register();
         }
-
 
         /**
          * Installs this applet.
@@ -145,35 +148,42 @@ public class Ndef extends Applet {
                         ISOException.throwIt(ISO7816.SW_CLA_NOT_SUPPORTED);
                 }
 
-                // dispatch by instruction
-                switch (buffer[ISO7816.OFFSET_INS]) {
+                if (handler[0].isApplicable(apdu)) {
+                        processSelect(buffer);
+                        apdu.setOutgoing();
+                        apdu.setOutgoingLength(responseLength);
+                } else {
 
-                case ISO7816.INS_SELECT:
+                        // dispatch by instruction
+                        switch (buffer[ISO7816.OFFSET_INS]) {
+
+                        /*case ISO7816.INS_SELECT:
                         processSelect(buffer);
 
                         apdu.setOutgoing();
                         apdu.setOutgoingLength(responseLength);
-                        break;
+                        break;*/
 
-                case INS_READ_BINARY:
-                        responseLength = processReadBinary(buffer);
+                        case INS_READ_BINARY:
+                                responseLength = processReadBinary(buffer);
+                                
+                                apdu.setOutgoing();
+                                apdu.setOutgoingLength(responseLength);
+                                break;
 
-                        apdu.setOutgoing();
-                        apdu.setOutgoingLength(responseLength);
-                        break;
+                        case (byte)0x90:
+                                apdu.setOutgoing();
+                                apdu.setOutgoingLength((short)3);
+                                buffer[0] = state;
+                                buffer[1] = (byte)(ef >> 8);
+                                buffer[2] = (byte)(ef);
+                                apdu.sendBytes((short)0, (short)3);
+                                break;
 
-                case (byte)0x90:
-                        apdu.setOutgoing();
-                        apdu.setOutgoingLength((short)3);
-                        buffer[0] = state;
-                        buffer[1] = (byte)(ef >> 8);
-                        buffer[2] = (byte)(ef);
-                        apdu.sendBytes((short)0, (short)3);
-                        break;
-
-                default: // unkown instruction
-                        state = IDLE;
-                        ISOException.throwIt(ISO7816.SW_INS_NOT_SUPPORTED);
+                        default: // unkown instruction
+                                state = IDLE;
+                                ISOException.throwIt(ISO7816.SW_INS_NOT_SUPPORTED);
+                        }
                 }
 
         }
