@@ -2,14 +2,14 @@ import org.gradle.api.Project
 import org.gradle.api.Plugin
 
 class JavacardPlugin implements Plugin<Project> {
-    
+
     void apply(Project project) {
 
         project.sourceCompatibility = '1.2'
         project.targetCompatibility = '1.2'
 
         project.extensions.create("cap", CapExtension)
-    
+
         project.task('capfiles') {
 
             dependsOn(project.compileJava)
@@ -32,9 +32,14 @@ class JavacardPlugin implements Plugin<Project> {
                     project.cap.aid,
                     project.cap.version ].join(' ')
 
-                def proc = translate.execute() 
+                def proc = translate.execute()
                 proc.waitFor()
-                assert(proc.exitValue() == 0)
+
+                if(proc.exitValue() != 0) {
+                    println proc.in.text
+                    println proc.err.text
+                    assert(proc.exitValue() == 0)
+                }
             }
         }
     }
