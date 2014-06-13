@@ -2,7 +2,6 @@ package de.spline.uves.ndef;
 
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
-import junit.textui.TestRunner;
 
 abstract public class NdefTestCase extends TestCase {
 
@@ -37,4 +36,6 @@ abstract public class NdefTestCase extends TestCase {
 	public static void assertEquals(byte[] that, byte[] those) {
 		assertEquals(bytesToString(that), bytesToString(those));
 	}
+
+        abstract public void assertTrace(String[] trace) throws Exception;
 }
