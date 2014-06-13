@@ -8,7 +8,7 @@ class JavacardPlugin implements Plugin<Project> {
         project.sourceCompatibility = '1.2'
         project.targetCompatibility = '1.2'
 
-        project.extensions.create("cap", CapExtension)
+        project.extensions.create('javacard', JavaCardExtension)
 
         project.task('capfiles') {
 
@@ -26,11 +26,11 @@ class JavacardPlugin implements Plugin<Project> {
                     '-out CAP',
                     '-d',  capBuildDir,
                     '-classdir', project.compileJava.destinationDir,
-                    '-applet', "${project.cap.aid}:0x01", project.cap.app,
+                    '-applet', "${project.javacard.aid}:0x01", project.javacard.app,
                     '-exportpath', "${javacardHome}/api_export_files",
-                    project.cap.getAppPackagePath(),
-                    project.cap.aid,
-                    project.cap.version ].join(' ')
+                    project.javacard.getAppPackagePath(),
+                    project.javacard.aid,
+                    project.javacard.version ].join(' ')
 
                 def proc = translate.execute()
                 proc.waitFor()
@@ -45,7 +45,7 @@ class JavacardPlugin implements Plugin<Project> {
     }
 }
 
-class CapExtension {
+class JavaCardExtension {
     String aid
     String app
     String version
@@ -57,6 +57,4 @@ class CapExtension {
     def getAppPackagePath() {
         this.app.findAll('[^.]+')[0..-2].join('.')
     }
-
-
 }
